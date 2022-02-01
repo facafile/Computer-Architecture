@@ -1,0 +1,89 @@
+        LDR r0,CITAJ ;ucitavan adresu s koje pocinjemo citat podatke
+        LDR r4,ZAVRSI
+        LDR r6,PISI;tu cuvan adresu odredista
+        MOV SP, #0x10000 ; inicijalizacija stoga
+
+PETLJA  LDR r1,[r0],#4;ucitavan operaciju koju cemo obavljat i micen r0 na sljedeci podatak
+        CMP r4,r1;usporedujen jel jednak izlaznoj naredbi
+        BEQ KRAJ;ako je jednak odi na kraj programa
+
+        LDR r2,[r0],#4;ucitavan 1 operand i micen r0 na sljedeci podatak
+        LDR r3,[r0],#4;ucitavan 2 operand i micen r0 na sljedeci operand
+
+        CMP r1,#0;usporedi jeli registar r1 jednak broju 0
+        BEQ ZBROJI
+        CMP r1,#1;usporedi jeli registar r1 jednak broju 1
+        BEQ ODUZMI
+        CMP r1,#2;usporedi jeli registar r1 jednak broju 2
+        BEQ MNOZI
+        STMFD SP!, {r2,r3} ; stavi argumente na stog
+        BL DIJELI
+        LDR r5,[sp]
+        ADD sp,sp,#12;ocisti stog u potpunosti 
+        STR r5,[r6],#4;spremi rijesenje dijeljenja na zadanu lokaciju u memioriji i neka registar r6 pokazuje na sljedecu slobodnu lokaciju
+        B PETLJA
+        
+ZBROJI ADD r5,r2,r3;zbroji registre r2 i r3 i spremi ih u registar r5
+       STR r5,[r6],#4 ;spremi na odrediste i neka registar pokazuje na sljedece misto
+       B PETLJA
+
+ODUZMI RSB r3,r3,#0 ;2 komplement broja i onda zbrojit to
+       B ZBROJI;
+
+       
+MNOZI MOV r1,#0;postavi registar r1 u 0
+      AND r7,r2,#0x80000000;provjera jeli 1. broj negativan
+      CMP r7,#0;nastavak provjere 
+      RSBNE r2,r2,#0;ako je pretvori ga u njegov 2. komplement
+      ADDNE r1,r1,#1;prati koliko je operanada negativno
+      AND r7,r3,#0x80000000;isto ko za 1. broj
+      CMP r7,#0;nastavak
+      RSBNE r3,r3,#0;...
+      ADDNE r1,r1,#1;...
+      MUL r5,r2,r3;pomnozi dva broja
+      CMP r1,#1;ako je neparan broj negativnih brojeva u ovoj operaciji pretvori rezultat u 2. komplement
+      RSBEQ r5,r5,#0;nastavak te radnje
+      STR r5,[r6],#4;spremi rezultat u memoriju i neka registar pokazuje na sljedece slobodno misto
+      B PETLJA
+
+DIJELI  SUB sp,sp,#4
+        STMFD SP!,{R2,R3,R4,R6};stavi ove registre na stog 
+        LDR R2,[sp,#20];napuni registar r2 s prvin operandom
+        LDR r3, [sp,#24];napuni registar r3 s drugim operandom
+        CMP r3,#0 ;prvojeri da dijeljitelj nije 0
+        MOVEQ r6,#0;ako je rezultat je 0
+        BEQ S_NULOM; ako je dijeljitelj 0 zavrsi dijeljenje
+        MOV r4,#0;pomakni registar koji pamti koliko je negativnih clanova u operaciji u 0
+        AND r6,r2,#0x80000000;prvojeri jeli prvi clan negativan
+        CMP r6,#0;nastavak...
+        ADDNE r4,r4,#1;ako je negativan povecaj brojac negativnih clanova za 1
+        RSBNE r2,r2,#0; ako je negativan pretvori ga u njegov 2. komplement
+        AND r6,r3,#0x80000000;isto kao i za prvi clan
+        CMP r6,#0;...
+        ADDNE r4,r4,#1;...
+        RSBNE r3,r3,#0;...
+        MOV r6,#0; ocisti registar r6 jer cemo u njega stavljati rijesenje dijeljenja
+PETLJA2 CMP r2,r3;provjeri da je dijeljenjik veci od dijeljitelja
+        SUBGE r2,r2,r3;ako je veci oduzmi dijeljitelj od dijeljenika
+        ADDGE r6,r6,#1;takoder povecaj rezultat za 1
+        BGE PETLJA2;ponavljaj petlju dok je taj uvijet zadovoljen
+        CMP r4,#1;kada smo dobili rezultat provjeravamo jeli bio neparan broj negativnih clanova u operaciji 
+        RSBEQ r6,r6,#0;i ako je napravimo 2. komplement od rezultata
+S_NULOM STR R6,[sp,#16];rijesenje spremamo na stog
+        LDMFD sp!,{r2,r3,r4,r6};ocisti stog clanova koje smo zadali unutar funkcije
+        MOV PC,LR;zavrsi funkciju
+
+
+              
+KRAJ   LDR R5,ZADNJI;postavi u registar r5 zadnju vrijednost koja je zadana zadatkom
+       STR r5,[r6];postavi na zadnju adresu tu vrijednost
+       swi 123456;zavrsetak programa
+
+
+CITAJ dw 0x500;adresa s koje citamo podatke
+PISI dw 0x1000;adresa s koje pocinjemo upisivati podatke
+ZAVRSI dw 0x80808080;podatak koji nam oznacava kraj citanja novih podataka
+ZADNJI dw 0xFFFFFFFF;podatak koji stavljamo u memoriju nakon svih izracunatih podataka
+
+
+

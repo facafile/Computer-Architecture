@@ -1,0 +1,87 @@
+ ORG 0
+ B GLAVNI;main
+ ORG 0x18
+ B IRQ ;obrada prekida
+
+IRQ STMFD R13!, {R0, R1, R2, R3, R14}
+    LDR R0,RTC
+    LDR R1,STANJE
+    
+IZ_1_U_2 CMP R1,#1;   usporedi je li trenutno stanje upravo ovo
+         MOVEQ R2,#2; ako je, zapisi u pomocni registar sljedece stanje
+         BLEQ ZUTO1  ;skoci na podprogram koji pali potrebna svjetla semafora ovisno o stanju
+         BEQ VAN    
+         
+IZ_2_U_3 CMP R1,#2; jednako kao i za kod iznad
+         MOVEQ R2,#3
+         BLEQ ZELENO   
+         BEQ VAN
+
+IZ_3_U_4 CMP R1,#3  ;jednako kao i za kood iznad
+         MOVEQ R2,#4
+         BLEQ ZUTO2        
+         BEQ VAN
+
+IZ_4_U_1 CMP R1,#4; jednako kao i za kod iznad
+         MOVEQ R2,#1
+         BLEQ CRVENO 
+  
+VAN STR R2, STANJE; zapisi u memoriju stanje koje smo pohranili u pomocnom registru
+    MOV R3,#0
+    STR R3, [R0, #8]; upisi 0 u Statusni registar u RTC-u
+    STR R3, [R0, #0xC];upisi 0 u brojilo, pocinje se brojiti opet od 0
+    LDMFD R13!, {R0, R1, R2, R3, R14}
+    SUBS PC, LR, #4
+    
+ZELENO STMFD R13!, {R0, R1};potprogram za paljenje svjetla na semaforu
+       LDR R0, GPIO  
+       MOV R1,#0b10000000; izgled bajta koji nam odreduje koje ce svjetlo biti upaljeno na semaforu
+       STRB R1, [R0]; spremamo taj bajt na odgovarajuce mjesto u GPIO-u
+       LDMFD R13!, {R0, R1}
+       MOV PC, LR
+
+ZUTO1 STMFD R13!, {R0, R1}; isto kao i kod iznad 
+       LDR R0, GPIO
+       MOV R1,#0b01100000
+       STRB R1, [R0]
+       LDMFD R13!, {R0, R1}
+       MOV PC, LR
+
+ZUTO2 STMFD R13!, {R0, R1}; isto kao i kod iznad
+       LDR R0, GPIO
+       MOV R1,#0b01000000
+       STRB R1, [R0]
+       LDMFD R13!, {R0, R1}
+       MOV PC, LR
+
+CRVENO STMFD R13!, {R0, R1}; isto kao i kod iznad
+       LDR R0, GPIO
+       MOV R1,#0b00100000
+       STRB R1, [R0]
+       LDMFD R13!, {R0, R1}
+       MOV PC, LR
+
+GLAVNI MSR CPSR,#0b11010010; prelazak u irq nacin rada
+       MOV R13,#0x10000;zadavanje stoga u tom nacinu rada
+       MSR CPSR,#0b11010011;prelazak u svc nacin rada
+       MOV R13,#0xF800;zadavanje stoga u tom nacinu rada
+       MOV R1,#1
+       LDR R2,GPIO
+       MOV R3,#0b11100000
+       STR R3,[R2,#8]; odredivanje smjera podataka za ledice na GPIO-u
+       STR R1,STANJE;zadavanje pocetnog stanja
+       BL CRVENO
+       LDR R0, RTC
+       LDR R1, PAUZA
+       STR R1, [R0, #4];zadavanje pauze u RTC
+       MOV R1, #1
+       STR R1, [R0, #0x10];omogucavanje prekida na RTCu
+       MRS R0, CPSR
+       BIC R0, R0, #0b11000000;omogucavanje prekida u CPSR
+       MSR CPSR, R0
+
+PET B PET
+GPIO dw 0xFFFF0B00
+RTC dw 0xFFFF0E00
+STANJE dw 1
+PAUZA dw 5

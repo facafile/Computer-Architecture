@@ -1,0 +1,80 @@
+ ORG 0
+ B MAIN;skok na main
+ ORG 0x18
+ B IRQ; skok na obradu irq iznimke
+ ORG 0x1C
+FIQ LDR R8,RTC; izvodenje fiq iznimke(nije potreban skok)
+    MOV R9,#0
+    STR R9,[R8,#0x10];onemoguci prekide u RTCu
+    LDR R10,DMAC
+    LDR R8,POLAZ
+    LDR R9,ODRED
+    STR R8,[R10,#0x10];postavi izvorisnu adresu DMACa
+    STR R9,[R10,#0x14];postavi odredisnu adresu DMACa
+    MOV R8,#0x000A
+    MOV R9,#0b10101100
+    STR R8,[R10,#0x18];zadavanje velicine prijenosa i bloka u DMACu preko registra R8 (blok =10, prijenos =1)
+    STR R9,[R10,#0x1C];postavljanje 9 bitnog registra konfiguracijske rijeci kanala 
+    MOV R8,#1
+    STR R8,[R10];omogucavanje kanala postavljanjem jedinice u Control registar
+    SUBS PC,LR,#4;povratak iz potporgrama
+    
+
+IRQ STMFD R13!,{R0,R1,R2,R3,R4};spremanje konteksta
+    LDR R0,RTC
+    LDR R1,DMAC
+    SUB R5,R5,#1;smanji brojac za jedan
+    LDR R2,[R1,#20];procitaj sljedecu slobodnu adresu u memoriji na kojoj nam nema podataka
+    MOV R3,#1
+    STR R3,[R1,#4]; brisanje spremnosti DMACa
+    LDR R3,KRAJ
+    STR R3,[R2];na adresu koja je spremljena u registar R2 upisi podatak 80808080
+    LDR R4,PAUZA
+    STR R4,[R0,#4]; postavi trajanje pauze u RTC
+    MOV R4,#0
+    STR R4,[R0,#0x0C];resetiranje brojila u registru LR RTCa
+    STR R4,[R0,#8];brisanje statusa u statusnom registru RTCa
+    MOV R4,#1
+    STR R4,[R0,#0x10];omoguvcavanje prekida u registru CR RTCa
+    LDMFD R13!,{R0,R1,R2,R3,R4}
+    SUBS PC,LR,#4;povratak iz potprograma
+
+MAIN MSR CPSR,#0b11010010;prelazak u irq nacin rada
+     MOV R13,#0x10000;postavljanje stoga za taj nacin rada
+     MSR CPSR,#0b11010001;prelazak u fiq nacin rada
+     MOV R13,#0xFC00;postavljanje stoga za taj nacin rada
+     MSR CPSR,#0b11010011;prelazak u svc nacin rada
+     MOV R13,#0xF800;postavljanje stoga za taj nacin rada
+
+     MRS R0, CPSR
+     BIC R0, R0, #0b11000000;omogucavanje prekida u CPSRu(fiq i irq)
+     MSR CPSR, R0
+     
+     LDR R0,DMAC;punjenje registara konstantama i vrijednostima pohranjenima u memoriji
+     LDR R1,POLAZ
+     LDR R2,ODRED
+     MOV R3,#0X000A
+     MOV R4,#0b10101100
+     LDR R5,COUNTER
+     MOV R6,#1
+     
+     STR R1,[R0,#0x10];postavljanje izvorne adrese u DMACu na adresu koju predstavlja labela POLAZ
+     STR R2,[R0,#0x14];postavljanje odredisne adrese u DMACu na adresu koju predstavlja labela ODRED
+     STR R3,[R0,#0x18];zadavanje velicine prijenosa i bloka u DMACu preko registra R3 (blok =10, prijenos =1)
+     STR R4,[R0,#0x1C];postavljanje 9 bitnog registra konfiguracijske rijeci kanala 
+     STR r6,[R0];omogucavanje kanala postavljanjem jedinice u Control registar
+     
+
+     
+PETLJA CMP R5,#0;provjerava jeli brojac dosao do 0
+       BNE PETLJA; ako nije nastavi
+
+ SWI 0x123456;ako je, zavrsi program
+
+DMAC dw 0x00FF0000
+RTC dw 0xFFFF0E00
+POLAZ dw 0x500
+ODRED dw 0x700
+KRAJ dw 0x80808080
+PAUZA dw 3
+COUNTER dw 5

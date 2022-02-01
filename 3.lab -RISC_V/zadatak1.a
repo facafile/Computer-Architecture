@@ -1,0 +1,226 @@
+MAIN
+ lui x11,%hi(0xFFFF0F00);#u x11 upisi adresu gpioa
+ addi x11,x11,%lo(0xFFFF0F00)
+ lui x12,%hi(STO);#upisi adrese adresa konstanti
+ addi x12,x12,%lo(STO)
+ lui x14,%hi(DEVEDESET)
+ addi x14,x14,%lo(DEVEDESET)
+ lui x15,%hi(PEDESET)
+ addi x15,x15,%lo(PEDESET)
+ lui x16,%hi(CETRD)
+ addi x16,x16,%lo(CETRD)
+ lui x17,%hi(DESET)
+ addi x17,x17,%lo(DESET)
+ lui x18,%hi(DEVET)
+ addi x18,x18,%lo(DEVET)
+ lui x19,%hi(PET)
+ addi x19,x19,%lo(PET)
+ lui x20,%hi(CETIRI)
+ addi x20,x20,%lo(CETIRI)
+ lui x21,%hi(JEDAN)
+ addi x21,x21,%lo(JEDAN)
+ lui x22,%hi(0x500)
+ addi x22,x22,%lo(0x500)
+ lw x23,0(x12);#reg s brojem 100
+ lw x12,0(x14);#reg s brojem 90
+ lw x13,0(x15);#reg s brojem 50
+ lw x14,0(x16);#reg s brojem 40
+ lw x15,0(x17);#reg s brojem 10
+ lw x16,0(x18);#reg s brojem 9
+ lw x17,0(x19);#reg s brojem 5
+ lw x18,0(x20);#reg s brojem 4
+ lw x19,0(x21);#reg s brojem 1
+ lw x10,0(x22);#reg s brojem kojeg pretvaramo
+ lw x21,12(x11)
+ lw x22,4(x11)
+ andi x21,x21,0
+ addi x22,x0,0x0D
+ andi x22,x22,0x7F
+ sb x21,12(x11);#postavljanje svih bitova kao izlaznih na vrata b
+ sb x22,4(x11);#ponistavanje prikaza LCDa
+ ori x22,x22,0x80
+ sb x22,4(x11)
+ andi x22,x22,0x7F
+ sb x22,4(x11);#gotovo
+ lui sp, %hi(0x10000)
+ addi sp, sp, %lo(0x10000);#stog na adresi 0x10000
+ addi sp,sp,-4
+ sb x24,0(sp)
+ jal ra, PRETVORI
+
+KRAJ halt
+
+PRETVORI 
+ bgeu x10,x23,A_100;#ako je broj veci od 100 odi na tu labelu
+ bgeu x10,x12,A_90;#isto za sve
+ bgeu x10,x13,A_50
+ bgeu x10,x14,A_40
+ bgeu x10,x15,A_10
+ bgeu x10,x16,A_9
+ bgeu x10,x17,A_5
+ bgeu x10,x18,A_4
+ bgeu x10,x19,A_1
+
+ISPISI addi x24,x0,0x0A;#ispisi sve u registrima na LCD
+ andi x24,x24,0x7F
+ sb x24, 4(x11)
+ ori x24,x24,0x80
+ sb x24, 4(x11)
+ andi x24,x24,0x7F
+ sb x24, 4(x11) 
+
+ lw x24,0(sp);#obnovi kontekst
+ addi sp,sp,4
+ jalr x0, 0(ra)
+
+A_100 
+ addi x10,x10,-100;#oduzimanje od pocetnog broja
+ addi x24,x0,0x43;#postavljanje registra na C
+ andi x24,x24,0x7F
+ sb x24, 4(x11)
+ ori x24,x24,0x80
+ sb x24, 4(x11)
+ andi x24,x24,0x7F
+ sb x24, 4(x11) ;#kraj
+ jal x0, PRETVORI;#skok na pocetak potprograma
+
+A_90
+ addi x10,x10,-90
+ addi x24,x0,0x58;#postavljanje registra na X
+ andi x24,x24,0x7F
+ sb x24, 4(x11)
+ ori x24,x24,0x80
+ sb x24, 4(x11)
+ andi x24,x24,0x7F
+ sb x24, 4(x11) 
+
+ addi x24,x0,0x43;#postavljanje registra na C
+ andi x24,x24,0x7F
+ sb x24, 4(x11)
+ ori x24,x24,0x80
+ sb x24, 4(x11)
+ andi x24,x24,0x7F
+ sb x24, 4(x11) ;#kraj
+ 
+ jal x0, PRETVORI
+
+A_50 
+ addi x10,x10,-50;#oduzimanje od pocetnog broja
+ addi x24,x0,0x4C;#postavljanje registra na L
+ andi x24,x24,0x7F
+ sb x24, 4(x11)
+ ori x24,x24,0x80
+ sb x24, 4(x11)
+ andi x24,x24,0x7F
+ sb x24, 4(x11)
+ jal x0, PRETVORI;#skok na pocetak potprograma
+ 
+A_40 
+ addi x10,x10,-40;#oduzimanje od pocetnog broja
+
+ addi x24,x0,0x58;#postavljanje registra na X
+ andi x24,x24,0x7F
+ sb x24, 4(x11)
+ ori x24,x24,0x80
+ sb x24, 4(x11)
+ andi x24,x24,0x7F
+ sb x24, 4(x11)
+
+ addi x24,x0,0x4C;#postavljanje registra na L
+ andi x24,x24,0x7F
+ sb x24, 4(x11)
+ ori x24,x24,0x80
+ sb x24, 4(x11)
+ andi x24,x24,0x7F
+ sb x24, 4(x11)
+
+ jal x0, PRETVORI;#skok na pocetak potprograma
+ 
+A_10 
+ addi x10,x10,-10
+ addi x24,x0,0x58;#postavljanje registra na X
+ andi x24,x24,0x7F
+ sb x24, 4(x11)
+ ori x24,x24,0x80
+ sb x24, 4(x11)
+ andi x24,x24,0x7F
+ sb x24, 4(x11) 
+ jal x0, PRETVORI
+
+A_9
+ addi x10,x10,-9;#oduzimanje od pocetnog broja
+
+ addi x24,x0,0x49;#postavljanje registra na I
+ andi x24,x24,0x7F
+ sb x24, 4(x11)
+ ori x24,x24,0x80
+ sb x24, 4(x11)
+ andi x24,x24,0x7F
+ sb x24, 4(x11)
+
+ addi x24,x0,0x58;#postavljanje registra na X
+ andi x24,x24,0x7F
+ sb x24, 4(x11)
+ ori x24,x24,0x80
+ sb x24, 4(x11)
+ andi x24,x24,0x7F
+ sb x24, 4(x11)
+
+ jal x0, PRETVORI;#skok na pocetak potprograma
+
+A_5
+ addi x10,x10,-5;#oduzimanje od pocetnog broja
+
+ addi x24,x0,0x56;#postavljanje registra na V
+ andi x24,x24,0x7F
+ sb x24, 4(x11)
+ ori x24,x24,0x80
+ sb x24, 4(x11)
+ andi x24,x24,0x7F
+ sb x24, 4(x11)
+ 
+ jal x0, PRETVORI
+
+A_4
+ addi x10,x10,-4;#oduzimanje od pocetnog broja
+ 
+ addi x24,x0,0x49;#postavljanje registra na I
+ andi x24,x24,0x7F
+ sb x24, 4(x11)
+ ori x24,x24,0x80
+ sb x24, 4(x11)
+ andi x24,x24,0x7F
+ sb x24, 4(x11)
+
+ addi x24,x0,0x56;#postavljanje registra na V
+ andi x24,x24,0x7F
+ sb x24, 4(x11)
+ ori x24,x24,0x80
+ sb x24, 4(x11)
+ andi x24,x24,0x7F
+ sb x24, 4(x11)
+ 
+ jal x0, PRETVORI
+
+A_1
+ addi x10,x10,-1;#oduzimanje od pocetnog broja
+ 
+ addi x24,x0,0x49;#postavljanje registra na I
+ andi x24,x24,0x7F
+ sb x24, 4(x11)
+ ori x24,x24,0x80
+ sb x24, 4(x11)
+ andi x24,x24,0x7F
+ sb x24, 4(x11)
+ jal x0, PRETVORI
+
+
+STO dw 100
+DEVEDESET dw 90
+PEDESET dw 50
+CETRD dw 40
+DESET dw 10
+DEVET dw 9
+PET dw 5
+CETIRI dw 4
+JEDAN dw 1
